@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Ellis{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Navigation -->
+  <nav class="topnav">
+    <div class="topnav-brand">Ellis</div>
+    <div class="topnav-links">
+      <a href="/" class="{% if page == 'home' %}active{% endif %}">Home</a>
+      <a href="/search" class="{% if page == 'search' %}active{% endif %}">Job Search</a>
+      <a href="/tracker" class="{% if page == 'tracker' %}active{% endif %}">Tracker</a>
+    </div>
+  </nav>
+
+  <!-- Cover + Avatar -->
+  <div class="cover-section">
+
+    {% if settings.cover_image %}
+      <div class="cover-banner">
+        <img src="{{ settings.cover_image }}" class="cover-img" alt="Cover"
+             style="object-position: center {{ settings.cover_position or 'center' }};" />
+      </div>
+    {% else %}
+      <div class="cover-banner cover-banner--default"></div>
+    {% endif %}
+
+    <!-- Square Avatar — bottom-left -->
+    <div class="avatar-wrap">
+      {% if settings.avatar %}
+        <img src="{{ settings.avatar }}" class="avatar-img" alt="Profile" />
+      {% else %}
+        <div class="avatar-placeholder">👤</div>
+      {% endif %}
+      <form action="/upload-avatar" method="POST" enctype="multipart/form-data">
+        <label class="avatar-upload-btn" title="Change photo">
+          +
+          <input type="file" name="avatar" accept="image/*" onchange="this.form.submit()" hidden />
+        </label>
+      </form>
+    </div>
+
+    <!-- Cover controls — bottom-right -->
+    <div class="cover-controls">
+      {% if settings.cover_image %}
+        <span class="pos-hint" id="drag-hint">Drag image to reposition</span>
+      {% endif %}
+      <form action="/upload-cover" method="POST" enctype="multipart/form-data">
+        <label class="cover-upload-btn">
+          Change Cover
+          <input type="file" name="cover" accept="image/*" onchange="this.form.submit()" hidden />
+        </label>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Quote display — only on search & tracker pages -->
+  {% if page != 'home' %}
+    <div class="page-quote-bar">
+      {% if settings.quote %}
+        <p class="page-quote-text">"{{ settings.quote }}"</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- Page Content -->
+  <main class="page-wrap">
+    {% block content %}{% endblock %}
+  </main>
+
+<script>
+(function () {
+  const img = document.querySelector('.cover-img');
+  if (!img) return;
+
+  let dragging = false;
+  let startY = 0;
+  let startPos = 50; // percentage
+  let currentPos = {{ (settings.cover_position | float) if settings.cover_position and settings.cover_position != 'center' else 50 }};
+
+  // Convert legacy top/center/bottom to percent
+  const legacyMap = { top: 10, center: 50, bottom: 90 };
+  const raw = "{{ settings.cover_position or 'center' }}";
+  if (legacyMap[raw] !== undefined) currentPos = legacyMap[raw];
+  else if (!isNaN(parseFloat(raw))) currentPos = parseFloat(raw);
+
+  img.style.objectPosition = `center ${currentPos}%`;
+  img.style.cursor = 'grab';
+
+  img.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startY = e.clientY;
+    startPos = currentPos;
+    img.style.cursor = 'grabbing';
+    document.getElementById('drag-hint').textContent = 'Release to save';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const delta = e.clientY - startY;
+    const imgH = img.naturalHeight || img.offsetHeight;
+    const pctDelta = (delta / img.offsetHeight) * 100;
+    currentPos = Math.min(100, Math.max(0, startPos + pctDelta));
+    img.style.objectPosition = `center ${currentPos}%`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    img.style.cursor = 'grab';
+    document.getElementById('drag-hint').textContent = 'Drag image to reposition';
+    // Save position
+    fetch('/set-cover-position', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `position=${currentPos.toFixed(2)}`
+    });
+  });
+})();
+</script>
+</body>
+</html>

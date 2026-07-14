@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Ellis{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <div class="section-header-row">
+    <div>
+      <h1 class="section-title">Job Search</h1>
+      <p class="section-sub">{{ jobs|length }} open roles · Saved jobs are hidden</p>
+    </div>
+    <form action="/refresh-jobs" method="POST">
+      <button type="submit" class="btn-refresh">↻ Refresh Jobs</button>
+    </form>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <input type="text" id="kw-filter" class="filter-input"
+         placeholder="Filter by title or company..." oninput="filterRows()" />
+</div>
+
+{% if jobs %}
+<div class="table-wrap">
+  <table class="data-table" id="jobs-table">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Job Title</th>
+        <th>Location</th>
+        <th>Link</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr data-title="{{ job.title|lower }}" data-company="{{ job.company|lower }}">
+        <td class="td-company">{{ job.company }}</td>
+        <td class="td-title">{{ job.title }}</td>
+        <td class="td-location">{{ job.location }}</td>
+        <td class="td-link">
+          <a href="{{ job.link }}" target="_blank" class="table-link">View ↗</a>
+        </td>
+        <td class="td-action">
+          <form action="/save-job" method="POST">
+            <input type="hidden" name="title"    value="{{ job.title }}" />
+            <input type="hidden" name="company"  value="{{ job.company }}" />
+            <input type="hidden" name="location" value="{{ job.location }}" />
+            <input type="hidden" name="link"     value="{{ job.link }}" />
+            <button type="submit" class="btn-save-job">Save</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No new jobs found. All results may already be saved in your tracker.</p>
+</div>
+{% endif %}
+
+<script>
+function filterRows() {
+  const kw = document.getElementById('kw-filter').value.toLowerCase();
+  document.querySelectorAll('#jobs-table tbody tr').forEach(row => {
+    const match = row.dataset.title.includes(kw) || row.dataset.company.includes(kw);
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

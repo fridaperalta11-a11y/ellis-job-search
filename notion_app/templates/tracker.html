@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Ellis{% endblock %}
+
+{% block content %}
+<div class="section-header">
+  <h1 class="section-title">Job Tracker</h1>
+  <p class="section-sub">{{ jobs|length }} saved jobs</p>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <input type="text" id="tracker-filter" class="filter-input"
+         placeholder="Filter by title or company..." oninput="filterTracker()" />
+</div>
+
+{% set status_colors = {
+  'Not Applied': '#FFF3CD',
+  'Applied':     '#D0E7FF',
+  'Interview':   '#FFE5B4',
+  'Offer':       '#D4EDDA',
+  'Rejected':    '#F8D7DA'
+} %}
+
+{% if jobs %}
+<div class="table-wrap">
+  <table class="data-table" id="tracker-table">
+    <thead>
+      <tr>
+        <th>Company</th>
+        <th>Job Title</th>
+        <th>Status</th>
+        <th>Notes</th>
+        <th>Link</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for job in jobs %}
+      <tr data-title="{{ job.title|lower }}" data-company="{{ job.company|lower }}">
+        <td class="td-company">{{ job.company }}</td>
+        <td class="td-title">{{ job.title }}</td>
+        <td class="td-status">
+          <form action="/update-job" method="POST" class="inline-form">
+            <input type="hidden" name="link"  value="{{ job.link }}" />
+            <input type="hidden" name="notes" value="{{ job.notes or '' }}" />
+            <select name="status" class="status-select"
+        style="background: {{ status_colors.get(job.status, '#FFF3CD') }};"
+        onchange="this.form.submit()">
+          <option value="Not Applied" {% if job.status == "Not Applied" %}selected{% endif %}>Not Applied</option>
+          <option value="Applied" {% if job.status == "Applied" %}selected{% endif %}>Applied</option>
+          <option value="Interview" {% if job.status == "Interview" %}selected{% endif %}>Interview</option>
+          <option value="Offer" {% if job.status == "Offer" %}selected{% endif %}>Offer</option>
+          <option value="Rejected" {% if job.status == "Rejected" %}selected{% endif %}>Rejected</option>
+        </select>
+          </form>
+        </td>
+        <td class="td-notes">
+          <form action="/update-job" method="POST" class="inline-form">
+            <input type="hidden" name="link"   value="{{ job.link }}" />
+            <input type="hidden" name="status" value="{{ job.status }}" />
+            <input type="text" name="notes" class="notes-input"
+                   value="{{ job.notes or '' }}" placeholder="Add notes..."
+                   onblur="this.form.submit()" />
+          </form>
+        </td>
+        <td class="td-link">
+          <a href="{{ job.link }}" target="_blank" class="table-link">View ↗</a>
+        </td>
+        <td class="td-action">
+          <form action="/delete-job" method="POST" class="inline-form">
+            <input type="hidden" name="link" value="{{ job.link }}" />
+            <button type="submit" class="btn-delete"
+                    onclick="return confirm('Remove this job?')">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No saved jobs yet. Go to Job Search and save some roles.</p>
+</div>
+{% endif %}
+
+<script>
+function filterTracker() {
+  const kw = document.getElementById('tracker-filter').value.toLowerCase();
+  document.querySelectorAll('#tracker-table tbody tr').forEach(row => {
+    const match = row.dataset.title.includes(kw) || row.dataset.company.includes(kw);
+    row.style.display = match ? '' : 'none';
+  });
+}
+</script>
+{% endblock %}

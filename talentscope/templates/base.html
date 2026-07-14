@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Ellis{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Sidebar Nav -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-icon">◈</span>
+      <span class="brand-name">Ellis</span>
+    </div>
+
+    <ul class="nav-links">
+      <li class="{% if page == 'scanner' %}active{% endif %}">
+        <a href="/">
+          <span class="nav-icon">⊞</span>
+          Scanner
+          {% if unread_alerts and unread_alerts > 0 %}
+            <span class="alert-badge">{{ unread_alerts }}</span>
+          {% endif %}
+        </a>
+      </li>
+      <li class="{% if page == 'applications' %}active{% endif %}">
+        <a href="/applications">
+          <span class="nav-icon">◻</span>
+          Applications
+        </a>
+      </li>
+      <li class="{% if page == 'analytics' %}active{% endif %}">
+        <a href="/analytics">
+          <span class="nav-icon">◈</span>
+          Analytics
+        </a>
+      </li>
+      <li class="{% if page == 'map' %}active{% endif %}">
+        <a href="/map">
+          <span class="nav-icon">◎</span>
+          Map
+        </a>
+      </li>
+      <li class="{% if page == 'settings' %}active{% endif %}">
+        <a href="/settings">
+          <span class="nav-icon">⊙</span>
+          Settings
+        </a>
+      </li>
+    </ul>
+
+    <div class="sidebar-footer">
+      {% if profile and profile.name %}
+        <span class="profile-name">{{ profile.name }}</span>
+      {% else %}
+        <a href="/settings" class="setup-prompt">Set up your profile →</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="/static/app.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

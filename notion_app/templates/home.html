@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Ellis{% endblock %}
+
+{% block content %}
+<div class="home-wrap">
+
+  <div class="home-title">My Job Search Workspace</div>
+
+  <!-- Two-column quote section -->
+  <div class="quote-two-col">
+
+    <!-- LEFT: Input + Save -->
+    <div class="quote-left">
+      <div class="quote-label">Quote of the Day</div>
+      <form action="/save-quote" method="POST" class="quote-form">
+        <textarea name="quote" class="quote-input"
+                  placeholder="Write something to keep you motivated..."></textarea>
+        <button type="submit" class="btn-save">Save Quote</button>
+      </form>
+    </div>
+
+    <!-- RIGHT: Display -->
+    <div class="quote-right">
+      {% if settings.quote %}
+        <p class="quote-display">"{{ settings.quote }}"</p>
+      {% else %}
+        <p class="quote-display quote-display--empty">Your quote will appear here</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-links">
+    <a href="/search" class="quick-card">
+      <div class="quick-icon">🔍</div>
+      <div class="quick-label">Job Search</div>
+      <div class="quick-sub">Find new openings</div>
+    </a>
+    <a href="/tracker" class="quick-card">
+      <div class="quick-icon">📋</div>
+      <div class="quick-label">Job Tracker</div>
+      <div class="quick-sub">Manage applications</div>
+    </a>
+  </div>
+
+</div>
+{% endblock %}

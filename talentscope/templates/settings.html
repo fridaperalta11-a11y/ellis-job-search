@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Settings — Ellis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Settings</h1>
+  <div id="save-status" class="save-status"></div>
+</div>
+
+<form id="settings-form" autocomplete="off">
+
+  <!-- ── Identity ─────────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Profile</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" type="text" name="name"
+               value="{{ profile.name or '' }}" placeholder="Frida Peralta" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" name="email"
+               value="{{ profile.email or '' }}" placeholder="you@email.com" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Location & Radius ─────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Location</h2>
+    <div class="form-grid">
+      <div class="form-group form-group--wide">
+        <label class="form-label">Home Address / City</label>
+        <input class="form-input" type="text" name="location_address"
+               value="{{ profile.location_address or 'Houston, TX' }}"
+               placeholder="Houston, TX" />
+        <span class="form-hint">Used to calculate commute distance for each job.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Max Radius (miles)</label>
+        <input class="form-input" type="number" name="max_radius_miles" min="5" max="200"
+               value="{{ profile.max_radius_miles or 50 }}" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Salary ─────────────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Salary</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Minimum Acceptable ($/year)</label>
+        <input class="form-input" type="number" name="salary_floor_annual" min="0" step="1000"
+               value="{{ profile.salary_floor_annual|int if profile.salary_floor_annual else '' }}"
+               placeholder="40000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Maximum ($/year)</label>
+        <input class="form-input" type="number" name="salary_max_annual" min="0" step="1000"
+               value="{{ profile.salary_max_annual|int if profile.salary_max_annual else '' }}"
+               placeholder="120000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Goal Salary ($/year)</label>
+        <input class="form-input" type="number" name="salary_goal_annual" min="0" step="1000"
+               value="{{ profile.salary_goal_annual|int if profile.salary_goal_annual else '' }}"
+               placeholder="70000" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Work Preferences ──────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Work Preferences</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Work Type</label>
+        <div class="checkbox-group">
+          {% set work_prefs = profile.work_type_preferences | from_json %}
+          {% for opt in ['On-site', 'Hybrid', 'Remote'] %}
+            <label class="checkbox-label">
+              <input type="checkbox" name="work_type" value="{{ opt }}"
+                     {% if opt in work_prefs %}checked{% endif %} />
+              {{ opt }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Employment Type</label>
+        <div class="checkbox-group">
+          {% set emp_prefs = profile.employment_type_preferences | from_json %}
+          {% for opt in ['Full-time', 'Part-time', 'Contract'] %}
+            <label class="checkbox-label">
+              <input type="checkbox" name="employment_type" value="{{ opt }}"
+                     {% if opt in emp_prefs %}checked{% endif %} />
+              {{ opt }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Career Goals ───────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Career Goals</h2>
+    <div class="form-grid form-grid--single">
+      <div class="form-group">
+        <label class="form-label">Short-Term Goal (used in fit scoring & cover letters)</label>
+        <textarea class="form-input form-textarea" name="career_goal_short_term"
+                  placeholder="Land a full-time analytical role in healthcare or education in Houston, TX">{{ profile.career_goal_short_term or '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Long-Term Goal</label>
+        <textarea class="form-input form-textarea" name="career_goal_long_term"
+                  placeholder="Complete UT Austin MSF or MSBA and move into finance or strategy">{{ profile.career_goal_long_term or '' }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Resume ─────────────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Resume</h2>
+    <div class="form-grid form-grid--single">
+      <div class="form-group">
+        <label class="form-label">Resume Text</label>
+        <span class="form-hint">Paste your full resume as plain text. The fit score engine reads this to match you against job descriptions.</span>
+        <textarea class="form-input form-textarea form-textarea--tall" name="resume_raw_text"
+                  placeholder="Paste your resume here...">{{ profile.resume_raw_text or '' }}</textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Scan & Alerts ──────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">Scan & Alerts</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Minimum Fit Score to Alert (%)</label>
+        <input class="form-input" type="number" name="alert_fit_score_threshold"
+               min="0" max="100"
+               value="{{ profile.alert_fit_score_threshold or 80 }}" />
+        <span class="form-hint">Jobs below this score are stored but won't trigger an alert badge.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Follow-up Reminder (days after applying)</label>
+        <input class="form-input" type="number" name="followup_reminder_days"
+               min="1" max="30"
+               value="{{ profile.followup_reminder_days or 7 }}" />
+      </div>
+    </div>
+  </section>
+
+  <!-- ── API Keys ───────────────────────────────────────── -->
+  <section class="settings-section">
+    <h2 class="section-title">API Keys</h2>
+    <p class="form-hint" style="margin-bottom:14px;">
+      Keys are stored only in your local <code>.env</code> file — never sent anywhere except the respective API.
+    </p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Anthropic API Key</label>
+        <input class="form-input form-input--mono" type="password" name="anthropic_key"
+               placeholder="sk-ant-…" autocomplete="new-password" />
+        <span class="form-hint">Powers fit scoring, Recruiter's Take, cover letters, and interview prep.</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Adzuna App ID</label>
+        <input class="form-input form-input--mono" type="text" name="adzuna_app_id"
+               placeholder="xxxxxxxx" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Adzuna API Key</label>
+        <input class="form-input form-input--mono" type="password" name="adzuna_api_key"
+               placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="new-password" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">JSearch API Key (RapidAPI)</label>
+        <input class="form-input form-input--mono" type="password" name="jsearch_api_key"
+               placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="new-password" />
+      </div>
+    </div>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary">Save Settings</button>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Parse JSON safely for checkbox state
+function parseJson(val, fallback) {
+  try { return JSON.parse(val); } catch { return fallback; }
+}
+
+document.getElementById('settings-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const statusEl = document.getElementById('save-status');
+
+  // Collect checkbox arrays
+  const workType = [...form.querySelectorAll('input[name="work_type"]:checked')]
+    .map(el => el.value);
+  const empType = [...form.querySelectorAll('input[name="employment_type"]:checked')]
+    .map(el => el.value);
+
+  const payload = {
+    name:                      form.name.value.trim(),
+    email:                     form.email.value.trim(),
+    location_address:          form.location_address.value.trim(),
+    max_radius_miles:          parseInt(form.max_radius_miles.value) || 50,
+    salary_floor_annual:       parseFloat(form.salary_floor_annual.value) || null,
+    salary_max_annual:         parseFloat(form.salary_max_annual.value) || null,
+    salary_goal_annual:        parseFloat(form.salary_goal_annual.value) || null,
+    work_type_preferences:     JSON.stringify(workType),
+    employment_type_preferences: JSON.stringify(empType),
+    career_goal_short_term:    form.career_goal_short_term.value.trim(),
+    career_goal_long_term:     form.career_goal_long_term.value.trim(),
+    resume_raw_text:           form.resume_raw_text.value,
+    alert_fit_score_threshold: parseInt(form.alert_fit_score_threshold.value) || 80,
+    followup_reminder_days:    parseInt(form.followup_reminder_days.value) || 7,
+  };
+
+  // Save profile
+  try {
+    const res = await fetch('/api/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('Failed to save profile');
+  } catch (err) {
+    statusEl.textContent = 'Error saving profile.';
+    statusEl.className = 'save-status error';
+    return;
+  }
+
+  // Save API keys if any were filled in
+  const keyPayload = {};
+  const ak = form.anthropic_key.value.trim();
+  const azId = form.adzuna_app_id.value.trim();
+  const azKey = form.adzuna_api_key.value.trim();
+  const js = form.jsearch_api_key.value.trim();
+  if (ak)   keyPayload.anthropic_key  = ak;
+  if (azId) keyPayload.adzuna_app_id  = azId;
+  if (azKey) keyPayload.adzuna_api_key = azKey;
+  if (js)   keyPayload.jsearch_api_key = js;
+
+  if (Object.keys(keyPayload).length > 0) {
+    try {
+      const res = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(keyPayload),
+      });
+      if (!res.ok) throw new Error('Failed to save keys');
+      // Clear key fields after save
+      form.anthropic_key.value = '';
+      form.adzuna_api_key.value = '';
+      form.jsearch_api_key.value = '';
+    } catch (err) {
+      statusEl.textContent = 'Profile saved, but API keys failed.';
+      statusEl.className = 'save-status error';
+      return;
+    }
+  }
+
+  statusEl.textContent = 'Saved.';
+  statusEl.className = 'save-status success';
+  setTimeout(() => { statusEl.textContent = ''; statusEl.className = 'save-status'; }, 2500);
+});
+</script>
+{% endblock %}

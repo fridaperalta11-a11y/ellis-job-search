@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% block title %}Scanner — Ellis{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Job Scanner</h1>
+  <button class="btn btn-primary" onclick="runScan()">▶ Run Scan Now</button>
+</div>
+
+<!-- Today's Top 5 -->
+<section class="top5-panel">
+  <h2 class="section-title">Today's Top Matches</h2>
+  {% if top5 %}
+    <div class="top5-grid">
+      {% for job in top5 %}
+        <div class="top5-card">
+          <div class="top5-header">
+            <span class="company">{{ job.company }}</span>
+            <span class="fit-badge fit-{{ 'green' if job.fit_score >= 90 else 'amber' if job.fit_score >= 70 else 'red' }}">
+              {{ job.fit_score|int }}%
+            </span>
+          </div>
+          <a href="/jobs/{{ job.id }}" class="job-title">{{ job.title }}</a>
+          <div class="top5-meta">
+            <span>{{ job.location_city }}, {{ job.location_state }}</span>
+            <span>{{ job.distance_miles|int if job.distance_miles else '—' }} mi</span>
+            <span>{{ job.date_posted }}</span>
+          </div>
+          {% if job.recruiters_take %}
+            <p class="take-excerpt">{{ job.recruiters_take[:120] }}...</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>No new high-fit jobs yet. Run a scan to populate your dashboard.</p>
+      <button class="btn btn-primary" onclick="runScan()">Run First Scan</button>
+    </div>
+  {% endif %}
+</section>
+
+<!-- Filter Bar -->
+<section class="filter-bar">
+  <input type="text" id="kw-search" placeholder="Search title or company..." class="filter-input" />
+  <select class="filter-select" id="f-experience" style="display:none">
+    <option value="">All Levels</option>
+  </select>
+  <select class="filter-select" id="f-employment">
+    <option value="">All Types</option>
+    <option>Full-time</option>
+    <option>Part-time</option>
+    <option>Contract</option>
+  </select>
+  <select class="filter-select" id="f-posted">
+    <option value="">Any Date</option>
+    <option value="1">Last 24h</option>
+    <option value="3">Last 3 days</option>
+    <option value="7">Last 7 days</option>
+    <option value="30">Last 30 days</option>
+  </select>
+  <select class="filter-select" id="f-radius">
+    <option value="">Any Distance</option>
+    <option value="10">10 mi</option>
+    <option value="20">20 mi</option>
+    <option value="30">30 mi</option>
+    <option value="50">50 mi</option>
+    <option value="100">100 mi</option>
+  </select>
+</section>
+
+<!-- Results Table -->
+<section class="results-section">
+  {% if jobs %}
+    <table class="jobs-table">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Role</th>
+          <th>Location</th>
+          <th>Distance</th>
+          <th>Posted</th>
+          <th>Fit Score</th>
+          <th>Salary</th>
+          <th>Type</th>
+          <th>Source</th>
+          <th>Status</th>
+          <th>★</th>
+          <th>Apply</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for job in jobs %}
+        <tr data-job-id="{{ job.id }}">
+          <td>{{ job.company }}</td>
+          <td>
+            <a href="/jobs/{{ job.id }}" class="job-link">{{ job.title }}</a>
+            {% if job.is_hot %}<span class="badge badge-hot">HOT</span>{% endif %}
+            {% if job.is_stale %}<span class="badge badge-stale">STALE</span>{% endif %}
+          </td>
+          <td>{{ job.location_city }}, {{ job.location_state }}</td>
+          <td>{{ 'Remote' if job.is_remote else (job.distance_miles|int|string + ' mi' if job.distance_miles else '—') }}</td>
+          <td>{{ job.date_posted or '—' }}</td>
+          <td>
+            {% if job.fit_score %}
+              <span class="fit-badge fit-{{ 'green' if job.fit_score >= 90 else 'amber' if job.fit_score >= 70 else 'red' }}"
+                    onclick="showFitBreakdown({{ job.id }})" style="cursor:pointer;">
+                {{ job.fit_score|int }}%
+              </span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if job.salary_disclosed %}
+              ${{ '{:,.0f}'.format(job.salary_min) if job.salary_min else '—' }}
+              {% if job.salary_max %}– ${{ '{:,.0f}'.format(job.salary_max) }}{% endif %}
+            {% else %}
+              <span class="muted">Not disclosed</span>
+            {% endif %}
+          </td>
+          <td>{{ job.employment_type or '—' }}</td>
+          <td>{{ job.source or '—' }}</td>
+          <td>
+            <select class="status-select" onchange="updateStatus({{ job.id }}, this.value)">
+              {% for s in ['New','Saved','Applied','Interviewing','Offer','Rejected','Withdrawn'] %}
+                <option value="{{ s }}" {% if job.status == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <button class="star-btn {% if job.is_starred %}starred{% endif %}"
+                    onclick="toggleStar({{ job.id }}, this)">★</button>
+          </td>
+          <td>
+            {% if job.apply_url %}
+              <a href="{{ job.apply_url }}" target="_blank" class="btn btn-sm">Apply</a>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <p>No jobs in the database yet.</p>
+      <p class="muted">Run a scan or paste a job manually to get started.</p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function runScan() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+
+  try {
+    const res = await fetch('/scan/run', { method: 'POST' });
+    const data = await res.json();
+    if (data.status === 'already_running') {
+      btn.textContent = 'Already running...';
+      pollScan(btn);
+      return;
+    }
+    // Scan started in background — poll until done
+    pollScan(btn);
+  } catch(e) {
+    alert('Scan failed. Check your API keys in Settings.');
+    btn.disabled = false;
+    btn.textContent = '▶ Run Scan Now';
+  }
+}
+
+async function pollScan(btn) {
+  let dots = 0;
+  const interval = setInterval(async () => {
+    dots = (dots + 1) % 4;
+    btn.textContent = 'Scanning' + '.'.repeat(dots + 1);
+    try {
+      const res = await fetch('/scan/status');
+      const data = await res.json();
+      if (!data.running) {
+        clearInterval(interval);
+        btn.disabled = false;
+        btn.textContent = '▶ Run Scan Now';
+        location.reload();
+      }
+    } catch(e) {
+      clearInterval(interval);
+      btn.disabled = false;
+      btn.textContent = '▶ Run Scan Now';
+    }
+  }, 3000);
+}
+
+async function updateStatus(jobId, status) {
+  await fetch(`/jobs/${jobId}/status`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ status })
+  });
+}
+
+async function toggleStar(jobId, btn) {
+  const starred = !btn.classList.contains('starred');
+  btn.classList.toggle('starred');
+  await fetch(`/jobs/${jobId}/star`, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ is_starred: starred })
+  });
+}
+
+function showFitBreakdown(jobId) {
+  window.location.href = `/jobs/${jobId}#fit-breakdown`;
+}
+
+// ── Table Filtering ────────────────────────────────────────────────────────
+function filterTable() {
+  const kw       = document.getElementById('kw-search').value.toLowerCase().trim();
+  const expLevel = document.getElementById('f-experience').value.toLowerCase();
+  const empType  = document.getElementById('f-employment').value.toLowerCase();
+  const posted   = parseInt(document.getElementById('f-posted').value) || 0;
+
+  const rows = document.querySelectorAll('.jobs-table tbody tr');
+  let visible = 0;
+
+  rows.forEach(row => {
+    const company  = row.cells[0]?.textContent.toLowerCase() || '';
+    const title    = row.cells[1]?.textContent.toLowerCase() || '';
+    const dateText = row.cells[4]?.textContent.trim() || '';
+    const type     = row.cells[7]?.textContent.toLowerCase() || '';
+
+    // Keyword filter
+    if (kw && !title.includes(kw) && !company.includes(kw)) {
+      row.style.display = 'none'; return;
+    }
+
+    // Employment type filter
+    if (empType && !type.includes(empType)) {
+      row.style.display = 'none'; return;
+    }
+
+    // Date posted filter
+    if (posted && dateText && dateText !== '—') {
+      const postedDate = new Date(dateText);
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - posted);
+      if (postedDate < cutoff) { row.style.display = 'none'; return; }
+    }
+
+    row.style.display = '';
+    visible++;
+  });
+}
+
+// Attach listeners to all filter controls
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('kw-search').addEventListener('input', filterTable);
+  document.getElementById('f-experience').addEventListener('change', filterTable);
+  document.getElementById('f-employment').addEventListener('change', filterTable);
+  document.getElementById('f-posted').addEventListener('change', filterTable);
+  document.getElementById('f-radius').addEventListener('change', filterTable);
+});
+</script>
+{% endblock %}

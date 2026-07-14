@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.DS_Store
+.env
+resume.txt
+
+# uploaded images and personal files
+notion_app/uploads/
+
+# search cache (regenerates on use)
+notion_app/data/search_cache.json
+
+# local database
+talentscope/talentscope.db
