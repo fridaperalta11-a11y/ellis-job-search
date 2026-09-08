@@ -3,11 +3,16 @@ jobs_engine.py — pulls jobs from Adzuna API, bank career page scrapers,
 and static high-priority source links.
 """
 
+import os
+
 import requests
 from bs4 import BeautifulSoup
+from dotenv import load_dotenv
 
-ADZUNA_APP_ID  = "bf6e24e0"
-ADZUNA_API_KEY = "68aeb5a0a35122991e14a00956425df9"
+load_dotenv()
+
+ADZUNA_APP_ID  = os.environ["ADZUNA_APP_ID"]
+ADZUNA_API_KEY = os.environ["ADZUNA_API_KEY"]
 ADZUNA_BASE    = "https://api.adzuna.com/v1/api/jobs/us/search/1"
 
 TARGET_LOCATIONS = ["Houston, TX", "Cypress, TX", "Spring, TX", "The Woodlands, TX", "Tomball, TX"]
